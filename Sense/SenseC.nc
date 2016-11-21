@@ -55,20 +55,20 @@ implementation {
 		}
 		else
 			call AMControl.start();
-    }
+	}
 
 	event void AMControl.stopDone(error_t err) {}
-
-    event void TimerSense.fired() {
+	
+	event void TimerSense.fired() {
 		call Read.read();
     }
 
-    event void TimerSync.fired() {
+	event void TimerSync.fired() {
 		updateEtx();
 		sendSyn();
 	}
-
-    event void Read.readDone(error_t result, uint16_t data) {
+	
+	event void Read.readDone(error_t result, uint16_t data) {
 		if (result == SUCCESS) {
 			ctp_msg_t payload;
 			payload.next_hop = parent;
@@ -78,7 +78,7 @@ implementation {
 			payload.ttl = TTL;
       		sendMsg(playload);
 		}
-    }
+	}
 
 	event void AMSend.sendDone(message_t* msg, error_t err) {
 		if (&message == msg) {
