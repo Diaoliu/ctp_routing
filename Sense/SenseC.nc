@@ -1,9 +1,10 @@
 #include "../lib/ctp.h"
 
+/* minimum base frequency */
 #define SAMPLING_FREQUENCY 500
-/* sending sync msg every 60 seconds*/
+/* sending sync msg periodically */
 #define SYNC_FREQUENCY 1000
-/* maximus transition time */
+/* maximum transition hops */
 #define TTL 25
 /* we only can maintain a network with 100 motes */
 #define TABLE_SIZE 100
@@ -11,20 +12,21 @@
 module Sense {
 	uses {
 		interface Boot;
-    	interface Leds;
+		interface Leds;
 		/* sampling humidity periodically */
     	interface TimerSense<TMilli>;
 		/* sending Sync to maintain routing table periodically */
-    	interface TimerSync<TMilli>;
-    	interface Read<uint16_t>;
+		interface TimerSync<TMilli>;
+		/* read humidity from chip */
+		interface Read<uint16_t>;
 		/* get rssi value */
 		interface CC2420Packet;
-
-    	interface Packet;
-    	interface AMPacket;
-    	interface AMSend;
-    	interface AMReceive;
-    	interface SplitControl as AMControl;
+		
+		interface Packet;
+		interface AMPacket;
+		interface AMSend;
+		interface AMReceive;
+		interface SplitControl as AMControl;
 	}
 }
 
@@ -52,16 +54,16 @@ implementation {
 		if (err == SUCCESS) {
 			call TimerSense.startPeriodic(SAMPLING_FREQUENCY * TOS_NODE_ID);
 			call TimerSync.startPeriodic(SYNC_FREQUENCY + TOS_NODE_ID * 10);
-		}
-		else
+		} else {
 			call AMControl.start();
+		}
 	}
 
 	event void AMControl.stopDone(error_t err) {}
 	
 	event void TimerSense.fired() {
 		call Read.read();
-    }
+	}
 
 	event void TimerSync.fired() {
 		updateEtx();
@@ -76,7 +78,7 @@ implementation {
 			payload.msgid = counter++;
 			payload.humidity = data;
 			payload.ttl = TTL;
-      		sendMsg(playload);
+			sendMsg(playload);
 		}
 	}
 
@@ -143,7 +145,7 @@ implementation {
 	 * my etx = min(etx of neighborhood + its distance to me)	
 	 */
 	void updateEtx() {
-		/* before seding sync, need to remove deactive motes from routing table*/
+		/* before seding sync, need to remove deactivated motes from routing table */
 		updateTable(NULL, 0);
 
 		#warning add your code here
