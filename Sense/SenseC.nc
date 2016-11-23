@@ -6,21 +6,22 @@
 #define SYNC_FREQUENCY 1000
 /* maximum transition hops */
 #define TTL 25
-/* we only can maintain a network with 100 motes */
-#define TABLE_SIZE 100
+/* we only can maintain a network with 10 motes */
+#define TABLE_SIZE 10
 
 module Sense {
 	uses {
 		interface Boot;
 		interface Leds;
 		/* sampling humidity periodically */
-    	interface TimerSense<TMilli>;
+		interface TimerSense<TMilli>;
 		/* sending Sync to maintain routing table periodically */
 		interface TimerSync<TMilli>;
 		/* read humidity from chip */
 		interface Read<uint16_t>;
 		/* get rssi value */
 		interface CC2420Packet;
+		interface ActiveMessageAddress;
 		
 		interface Packet;
 		interface AMPacket;
@@ -32,6 +33,9 @@ module Sense {
 
 implementation {
 
+	/* active message address of this node */
+	am_addr_t self_address;
+
 	/* wrapper to carry message*/
 	message_t message;
 	/* message serial */
@@ -39,7 +43,7 @@ implementation {
 	/* ETX: expected distance between this and root mote */
 	uint16_t etx = 0xFFFF;
 	/* parent mote */
-	uint8_t parent = 0xFF;
+	am_addr_t parent;
 	/* routing table */
 	ctp_routing_t routing_table[TABLE_SIZE];
 
@@ -47,6 +51,8 @@ implementation {
   
 	event void Boot.booted() {
 		initRoutingTable();
+		/* get address of this node */
+		self_address = call amAddress();
 		call AMControl.start();
 	}
 
@@ -73,7 +79,6 @@ implementation {
 	event void Read.readDone(error_t result, uint16_t data) {
 		if (result == SUCCESS) {
 			ctp_msg_t payload;
-			payload.next_hop = parent;
 			payload.nodeid = TOS_NODE_ID;
 			payload.msgid = counter++;
 			payload.humidity = data;
@@ -91,10 +96,9 @@ implementation {
 	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
 		if (len == sizeof(ctp_msg_t)) {
 			ctp_msg_t *data = (ctp_msg_t*)payload;
-			/* if the message is send to me, then forward it to next hop */
-			if(data->nodeid == TOS_NODE_ID && data->ttl > 0) {
+			/* if the message has time to live, then forward it to next hop */
+			if(data->ttl > 0) {
 				ctp_msg_t forward;
-				forward.next_hop = parent;
 				forward.nodeid = data->nodeid;
 				forward.msgid = data->msgid;
 				forward.humidity = data->humidity;
@@ -124,7 +128,7 @@ implementation {
 ******************************/
 	
 	/* @autor Diao Liu
-	 * @brief sending sampled data to next hop accoding rounting table
+	 * @brief send or forward sampled data to next hop accoding rounting table
 	 */
 	void sendMsg(ctp_msg_t payload) {
 		#warning add your code here
