@@ -11,6 +11,7 @@ implementation
   components ActiveMessageC, new AMSenderC(AM_TYPE);
   components new AMReceiverC(AM_TYPE);
   components CC2420ActiveMessageC;
+  components ActiveMessageAddressC;
 
   SenseC.Boot -> MainC;
   SenseC.Leds -> LedsC;
@@ -18,7 +19,8 @@ implementation
   SenseC.TimerSync -> Timer1;
   SenseC.Read -> Sensor.Humidity;
 
-  Sensec -> CC2420ActiveMessageC.CC2420Packet;
+  Sensec.CC2420Packet -> CC2420ActiveMessageC;
+  Sensec.ActiveMessageAddress -> ActiveMessageAddressC;
 
   SenseC.Packet -> AMSenderC;
   SenseC.AMPacket -> AMSenderC;
