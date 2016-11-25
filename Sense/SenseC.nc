@@ -132,6 +132,16 @@ implementation {
 	 */
 	void sendMsg(ctp_msg_t payload) {
 		#warning add your code here
+		if (!busy) {
+			ctp_msg_t *out = (ctp_msg_t*)(call Packet.getPayload(&message, sizeof(ctp_msg_t)));
+			if (out == NULL) {
+				return;
+			}
+			*out = payload;
+			if (call AMSend.send(parent, &message, sizeof(ctp_msg_t)) == SUCCESS) {
+				busy = TRUE;
+			}
+		}
 	}
 
 	/* @autor Tingze Hong
