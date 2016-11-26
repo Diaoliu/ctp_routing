@@ -75,16 +75,13 @@ implementation {
 	 * @brief boardcast my etx 
 	 */
 	void sendSyn() {
-		/* every sync has a timestamp to record mote status, live or offline */
-		uint32_t timestamp = call TimerSync.getNow();
 		if (!busy) {
       		ctp_syn_t* out = (ctp_syn_t*)(call Packet.getPayload(&message, sizeof(ctp_syn_t)));
       		if (out == NULL)
 				return;
-			out -> nodeid = TOS_NODE_ID;
-			out -> address = self_address;
-			out -> timestamp = timestamp;
-	   	 	out -> etx = etx;
+			out->nodeid = TOS_NODE_ID;
+			out->address = self_address;
+	   	 	out->etx = etx;
       		if (call AMSend.send(AM_BROADCAST_ADDR, &message, sizeof(ctp_syn_t)) == SUCCESS) {
         		busy = TRUE;
       		}
@@ -93,62 +90,43 @@ implementation {
 
 	/* @autor Hongduo Chen
 	 * @brief when syn message come in, add a neighborhood or update it
-	 * @ syn, sync message from neighborhood
-	 * @ rssi, rssi from neighborhood 
+	 *        the items will be ascending sorted
+	 * @syn sync message from neighborhood
+	 * @rssi rssi from neighborhood 
 	 */
-	int getIndex(){
-		int i=0;
-		for(i=0; i < TABLE_SIZE; i++) {
-			if(routing_table[i].nodeid == 0) {
-				break;
-			}
-		}
-		return i;
-	}
-
-	int worst_neighbor(){
-		int result = 0;
-		int i = 0;
-		for(i = 1;i < TABLE_SIZE; i++) { 
-			int max = routing_table[result].etx + routing_table[result].rssi;
-			int current = routing_table[i].etx + routing_table[i].rssi;
-			if(current > max) {
-				result = i;
-			}
-		}
-		return result;		
-	}
-
-   	am_addr_t getParent(){
-			int result = 0;
-			int i = 0;
-			for(i = 1; i<TABLE_SIZE; i++){ 
-				int min = routing_table[result].etx + routing_table[result].rssi;
-				int current = routing_table[i].etx + routing_table[i].rssi;
-				if(current < min) {
-					result = i;
-				}
-			}
-			return routing_table[result].address;		
-	}
-
 	void updateTable(ctp_syn_t syn, uint8_t rssi) {
-		int current_index = getIndex();
-		ctp_routing_t tmp;
-		tmp.nodeid = syn.nodeid;
-		tmp.address = syn.address;
-		tmp.timestamp = call TimerSync.getNow();
-		tmp.etx = syn.etx;
-		tmp.rssi = rssi;
-		if(current_index != TABLE_SIZE) {
-			routing_table[current_index] = tmp;
-		} else {
-			int worst_index = worst_neighbor();
-			if((tmp.etx + tmp.rssi) < (routing_table[worst_index].etx + routing_table[worst_index].rssi)){
-				routing_table[worst_index] = tmp;
+		/* new item need to be insert */
+		ctp_routing_t node;
+		node.nodeid = syn.nodeid;
+		node.address = syn.address;
+		node.etx = syn.etx;
+		node.rssi = rssi;
+		node.timestamp = call TimerSync.getNow();
+
+		for (int i = 0; i < TABLE_SIZE; ++i) {
+			/* current item */
+			ctp_routing_t current = routing_table[i];
+			/* this item is not empty */
+			if(current.nodeid != 0) {
+				uint16_t route = node.etx + node.rssi;
+				/* new item has better route to root */
+				if(route < current.etx + current.rssi) {				
+					if (i == TABLE_SIZE - 1) {
+						/* relace the last item with new one */
+						routing_table[i] = node;
+					} else {
+						/* shift items by one */
+						ctp_routing_t *begin = routing_table + i;
+						memcpy(begin + 1, begin, (TABLE_SIZE - 1 - i) * sizeof(ctp_routing_t));
+						/* relace the current item with new one */
+						routing_table[i] = node;
+					}				
+				}
+			} else {
+				/* adding item at a empty place */
+				routing_table[i] = node;
 			}
 		}
-		parent = getParent();
 	}
 
 	/* @autor Tingze Hong
@@ -157,27 +135,17 @@ implementation {
 	 */
 	void updateEtx() {
 		/* before seding sync, need to remove deactivated motes from routing table */
-		//updateTable(NULL, 0);
-		int i = 0;
-		uint16_t min = routing_table[0].etx + routing_table[0].rssi;
-		for(i = 1; i < TABLE_SIZE; i++) {
-			ctp_routing_t current = routing_table[i];
-				if(current.nodeid != 0){
-					if(min > routing_table[i].etx + routing_table[i].rssi){
-						min = routing_table[i].etx + routing_table[i].rssi;
-					}
-			}
-		}
-		if(min != 0) {
-			etx = min;
-		}
+		if (routing_table[0] != 0) {
+			etx = routing_table[0].ext + routing_table[0].rssi;
+			parent = routing_table[0].address;
+		}	
 	}
 
 	/* @autor Hongduo Chen
 	 * @brief when system is booted, its routing table shouble be empty 
 	 */
 	void initRoutingTable() {
-		memset(routing_table, 0, TABLE_SIZE*sizeof(ctp_routing_t));
+		memset(routing_table, 0, TABLE_SIZE * sizeof(ctp_routing_t));
 	}
   
 	event void Boot.booted() {
