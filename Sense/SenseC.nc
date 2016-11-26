@@ -76,17 +76,17 @@ implementation {
 	 */
 	void sendSyn() {
 		if (!busy) {
-      		ctp_syn_t* out = (ctp_syn_t*)(call Packet.getPayload(&message, sizeof(ctp_syn_t)));
-      		if (out == NULL)
+			ctp_syn_t* out = (ctp_syn_t*)(call Packet.getPayload(&message, sizeof(ctp_syn_t)));
+			if (out == NULL)
 				return;
 			out->nodeid = TOS_NODE_ID;
 			out->address = self_address;
-	   	 	out->etx = etx;
-      		if (call AMSend.send(AM_BROADCAST_ADDR, &message, sizeof(ctp_syn_t)) == SUCCESS) {
-        		busy = TRUE;
-      		}
-    	}
-    }
+			out->etx = etx;
+			if (call AMSend.send(AM_BROADCAST_ADDR, &message, sizeof(ctp_syn_t)) == SUCCESS) {
+			busy = TRUE;
+			}
+		}
+	}
 
 	/* @autor Hongduo Chen
 	 * @brief when syn message come in, add a neighborhood or update it
@@ -147,7 +147,7 @@ implementation {
 	void initRoutingTable() {
 		memset(routing_table, 0, TABLE_SIZE * sizeof(ctp_routing_t));
 	}
-  
+
 	event void Boot.booted() {
 		initRoutingTable();
 		/* get address of this node */
