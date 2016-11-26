@@ -9,6 +9,8 @@
 #define TTL 25
 /* we only can maintain a network with 10 motes */
 #define TABLE_SIZE 10
+/* a mote is offline if it do not send syn after 60 seconds */
+#define INTERVAL 60000
 
 module SenseC {
 	uses {
@@ -96,12 +98,28 @@ implementation {
 	 */
 	void updateTable(ctp_syn_t syn, uint8_t rssi) {
 		/* new item need to be insert */
+		uint32_t time = call TimerSync.getNow();
 		ctp_routing_t node;
 		node.nodeid = syn.nodeid;
 		node.address = syn.address;
 		node.etx = syn.etx;
 		node.rssi = rssi;
-		node.timestamp = call TimerSync.getNow();
+		node.timestamp = time;
+
+		/* remove same record and offline mote */
+		for (int i = 0; i < TABLE_SIZE; ++i) {
+			/* current item */
+			ctp_routing_t *current = routing_table + i;
+			if (current->nodeid == node.nodeid || time - current->timestamp > INTERVAL) {
+				if (i == TABLE_SIZE - 1) {
+					memset(current, 0, sizeof(ctp_routing_t));
+				} else {
+					/* up shift items by one */
+					memcpy(current, current + 1, (TABLE_SIZE - 1 - i) * sizeof(ctp_routing_t));
+					memset(current + TABLE_SIZE - 1, 0, sizeof(ctp_routing_t));
+				}		
+			}
+		}
 
 		for (int i = 0; i < TABLE_SIZE; ++i) {
 			/* current item */
@@ -115,7 +133,7 @@ implementation {
 						/* relace the last item with new one */
 						routing_table[i] = node;
 					} else {
-						/* shift items by one */
+						/* down shift items by one */
 						ctp_routing_t *begin = routing_table + i;
 						memcpy(begin + 1, begin, (TABLE_SIZE - 1 - i) * sizeof(ctp_routing_t));
 						/* relace the current item with new one */
