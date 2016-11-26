@@ -1,23 +1,56 @@
+#ifndef _CTP_H
+#define _CTP_H
 #define AM_TYPE 6
+#include <AM.h>
 
-struct ctp_msg_t {
-	uint16_t nodeid;
-	uint16_t msgid;
-	uint16_t humidity;
-	uint8_t ttl;
-};
+typedef nx_struct ctp_msg_t {
+	nx_uint16_t nodeid;
+	nx_uint16_t msgid;
+	nx_uint16_t humidity;
+	nx_uint8_t ttl;
+} ctp_msg_t;
 
-struct ctp_syn_t {
-	uint16_t nodeid;
-	am_addr_t address;
-	uint32_t timestamp;
-	uint16_t etx;
-};
+typedef nx_struct ctp_syn_t {
+	nx_uint16_t nodeid;
+	nx_am_addr_t address;
+	nx_uint32_t timestamp;
+	nx_uint16_t etx;
+} ctp_syn_t;
 
-struct ctp_routing_t {
-	uint16_t nodeid;
-	am_addr_t address;
-	uint16_t etx;
-	unsigned int rssi;
-	uint32_t timestamp;
-};
+typedef nx_struct ctp_routing_t {
+	nx_uint16_t nodeid;
+	nx_am_addr_t address;
+	nx_uint16_t etx;
+	nx_uint16_t rssi;
+	nx_uint32_t timestamp;
+} ctp_routing_t;
+
+#endif
+#ifndef _CTP_H
+#define _CTP_H
+#define AM_TYPE 6
+#include <AM.h>
+
+typedef nx_struct ctp_msg_t {
+	nx_uint16_t nodeid;
+	nx_uint16_t msgid;
+	nx_uint16_t humidity;
+	nx_uint8_t ttl;
+} ctp_msg_t;
+
+typedef nx_struct ctp_syn_t {
+	nx_uint16_t nodeid;
+	nx_am_addr_t address;
+	nx_uint32_t timestamp;
+	nx_uint16_t etx;
+} ctp_syn_t;
+
+typedef nx_struct ctp_routing_t {
+	nx_uint16_t nodeid;
+	nx_am_addr_t address;
+	nx_uint16_t etx;
+	nx_uint16_t rssi;
+	nx_uint32_t timestamp;
+} ctp_routing_t;
+
+#endif
