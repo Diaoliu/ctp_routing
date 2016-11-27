@@ -106,13 +106,13 @@ implementation {
 		node.rssi = rssi;
 		node.timestamp = time;
 		/* position to insert item */
-		unsigned insert = -1;	
+		int insert = -1;	
 		
 		int i;
 		for (i = 0; i < TABLE_SIZE; ++i) {
 			/* insert at empty place */
 			if (current->nodeid == 0) {
-				insert = 0;
+				insert = i;
 				break;
 			}
 			/* current item */
@@ -137,9 +137,9 @@ implementation {
 				routing[insert] = node;
 			} else {
 				/* down shift items by one */
-				memcpy(current + 1, current, (TABLE_SIZE - 1 - i) * sizeof(ctp_routing_t));
+				memcpy(routing_table + insert + 1, routing_table + insert, (TABLE_SIZE - 1 - iinsert) * sizeof(ctp_routing_t));
 				/* relace the current item with new one */
-				*current = node;
+				routing[insert] = node;
 			}
 		}
 	}
