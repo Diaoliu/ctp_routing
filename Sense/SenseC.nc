@@ -105,35 +105,40 @@ implementation {
 		node.etx = syn.etx;
 		node.rssi = rssi;
 		node.timestamp = time;
-
-		unsigned insert = 0;
-
-		/* remove same record and offline mote */
-		for (int i = 0; i < TABLE_SIZE; ++i) {
+		/* position to insert item */
+		unsigned insert = -1;	
+		
+		int i;
+		for (i = 0; i < TABLE_SIZE; ++i) {
+			/* insert at empty place */
+			if (current->nodeid == 0) {
+				insert = 0;
+				break;
+			}
 			/* current item */
 			ctp_routing_t *current = routing_table + i;
+			/* remove same record and offline mote */
 			if (current->nodeid == node.nodeid || time - current->timestamp > INTERVAL) {
 				/* up shift items by one */
 				memcpy(current, current + 1, (TABLE_SIZE - 1 - i) * sizeof(ctp_routing_t));
+				/* set last item empty */
 				memset(current + TABLE_SIZE - 1, 0, sizeof(ctp_routing_t));
+			}
+
+			uint16_t route = node.etx + node.rssi;
+			/* new item has better route to root */
+			if(route < current->etx + current->rssi) {				
+				insert = i;		
 			}
 		}
 
-		for (int i = 0; i < TABLE_SIZE; ++i) {
-			/* current item */
-			ctp_routing_t *current = routing_table + i;
-			/* this item is not empty */
-			if(current->nodeid != 0) {
-				uint16_t route = node.etx + node.rssi;
-				/* new item has better route to root */
-				if(route < current->etx + current->rssi) {				
-					/* down shift items by one */
-					memcpy(current + 1, current, (TABLE_SIZE - 1 - i) * sizeof(ctp_routing_t));
-					/* relace the current item with new one */
-					*current = node;			
-				}
+		if (insert != -1) {
+			if (insert = TABLE_SIZE - 1) {
+				routing[insert] = node;
 			} else {
-				/* adding item at a empty place */
+				/* down shift items by one */
+				memcpy(current + 1, current, (TABLE_SIZE - 1 - i) * sizeof(ctp_routing_t));
+				/* relace the current item with new one */
 				*current = node;
 			}
 		}
