@@ -137,9 +137,10 @@ implementation {
 				routing[insert] = node;
 			} else {
 				/* down shift items by one */
-				memcpy(routing_table + insert + 1, routing_table + insert, (TABLE_SIZE - 1 - iinsert) * sizeof(ctp_routing_t));
+				ctp_routing_t *p = routing_table + insert;
+				memcpy(p + 1, p, (TABLE_SIZE - 1 - insert) * sizeof(ctp_routing_t));
 				/* relace the current item with new one */
-				routing[insert] = node;
+				*p = node;
 			}
 		}
 	}
